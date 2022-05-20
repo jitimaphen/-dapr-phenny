@@ -1,0 +1,116 @@
+version: "3.9"
+
+networks:
+  dapr-phenny_default:
+    driver: bridge
+    name: dapr-phenny_default
+    external: true
+
+services:
+  db:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_storage:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    networks:
+      - dapr-phenny_default
+  placement:
+    container_name: placement
+    image: "daprio/dapr"
+    command: [ "./placement", "-port", "50006" ]
+    ports:
+      - "50006:50006"
+    networks:
+      - dapr-phenny_default
+  redis:
+    container_name: redis
+    image: "redis:alpine"
+    ports:
+      - "6380:6379"
+    networks:
+      - dapr-phenny_default
+
+  portal-django:
+    build:
+      context: phenny
+      dockerfile: ./Dockerfile
+    user: "1000"
+    container_name: portal-django
+    command: python manage.py runserver 0.0.0.0:8000
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./phenny/src:/app/site
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - placement
+      - redis
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PORT=5432
+    networks:
+      - dapr-phenny_default
+  portal-django-dapr:
+    container_name: portal-django-dapr
+    image: "daprio/daprd:edge"
+    command: [ "./daprd",
+               "-app-id", "portal-django",
+               "-placement-host-address", "placement:50006",
+               "-config", "./config.yaml",
+               "-components-path", "/components" ]
+    volumes:
+      - "./components/:/components"
+      - "./config.yaml:/config.yaml"
+      - "./local-secrets:/local-secrets"
+    depends_on:
+      - portal-django
+    network_mode: "service:portal-django"
+    environment:
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=""
+
+  pythonapp:
+    container_name: pythonapp
+    build: ./python
+    depends_on:
+      - redis
+      - placement
+    networks:
+      - dapr-phenny_default
+  pythonapp-dapr:
+    container_name: pythonapp-dapr
+    image: "daprio/daprd:edge"
+    command: [ "./daprd",
+               "-app-id", "pythonapp",
+               "-placement-host-address", "placement:50006",
+               "-config", "./config.yaml",
+               "-components-path", "/components" ]
+    volumes:
+      - "./components/:/components"
+      - "./config.yaml:/config.yaml"
+      - "./local-secrets:/local-secrets"
+    depends_on:
+      - pythonapp
+    network_mode: "service:pythonapp"
+    environment:
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=""
+
+volumes:
+  postgres_storage:
+    driver: local
+  rabbit_data:
+    driver: local
+  rabbit_log:
+    driver: local
