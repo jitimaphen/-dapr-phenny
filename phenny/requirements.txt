@@ -1,2 +1,4 @@
 Django==3.2.5
 django_filter==2.4.0
+djangorestframework
+markdown

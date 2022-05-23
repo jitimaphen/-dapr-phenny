@@ -36,12 +36,12 @@ services:
     networks:
       - dapr-phenny_default
 
-  portal-django:
+  phenny:
     build:
       context: phenny
       dockerfile: ./Dockerfile
     user: "1000"
-    container_name: portal-django
+    container_name: phenny
     command: python manage.py runserver 0.0.0.0:8000
     stdin_open: true
     tty: true
@@ -61,11 +61,13 @@ services:
       - POSTGRES_PORT=5432
     networks:
       - dapr-phenny_default
-  portal-django-dapr:
-    container_name: portal-django-dapr
+  phenny-dapr:
+    container_name: phenny-dapr
     image: "daprio/daprd:edge"
     command: [ "./daprd",
-               "-app-id", "portal-django",
+               "-app-id", "phenny",
+               "-dapr-app-id", "phenny",
+               "-app-port", "8000",
                "-placement-host-address", "placement:50006",
                "-config", "./config.yaml",
                "-components-path", "/components" ]
@@ -74,8 +76,8 @@ services:
       - "./config.yaml:/config.yaml"
       - "./local-secrets:/local-secrets"
     depends_on:
-      - portal-django
-    network_mode: "service:portal-django"
+      - phenny
+    network_mode: "service:phenny"
     environment:
       - REDIS_HOST=redis:6379
       - REDIS_PASSWORD=""

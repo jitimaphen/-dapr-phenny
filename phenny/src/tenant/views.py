@@ -1,9 +1,15 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from tenant.models import Member
+from rest_framework import viewsets
+from rest_framework.response import Response
 
-def index(request):
-    return HttpResponse("You're looking at member")
+from tenant.serializers import MemberSerializer
 
-def detail(request, member_id):
-    member_detail = Member.objects.get(id=member_id)
-    return HttpResponse("You're looking at member %s." % member_detail.name)
+
+class MemberViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = Member.objects.all()
+    serializer_class = MemberSerializer
+
