@@ -66,7 +66,6 @@ services:
     image: "daprio/daprd:edge"
     command: [ "./daprd",
                "-app-id", "phenny",
-               "-dapr-app-id", "phenny",
                "-app-port", "8000",
                "-placement-host-address", "placement:50006",
                "-config", "./config.yaml",
