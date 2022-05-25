@@ -7,5 +7,6 @@ spec:
   route: /dsstatus
   pubsubname: pubsub
 scopes:
-- portal-django
-- pythonapp
+#- phenny
+#- pythonapp
+- app

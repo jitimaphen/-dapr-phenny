@@ -68,12 +68,9 @@ services:
                "-app-id", "phenny",
                "-app-port", "8000",
                "-placement-host-address", "placement:50006",
-               "-config", "./config.yaml",
                "-components-path", "/components" ]
     volumes:
       - "./components/:/components"
-      - "./config.yaml:/config.yaml"
-      - "./local-secrets:/local-secrets"
     depends_on:
       - phenny
     network_mode: "service:phenny"
@@ -84,6 +81,8 @@ services:
   pythonapp:
     container_name: pythonapp
     build: ./python
+    ports:
+      - "6000:6000"
     depends_on:
       - redis
       - placement
@@ -94,16 +93,42 @@ services:
     image: "daprio/daprd:edge"
     command: [ "./daprd",
                "-app-id", "pythonapp",
+                "-app-port", "6000",
                "-placement-host-address", "placement:50006",
-               "-config", "./config.yaml",
                "-components-path", "/components" ]
     volumes:
       - "./components/:/components"
-      - "./config.yaml:/config.yaml"
-      - "./local-secrets:/local-secrets"
     depends_on:
       - pythonapp
     network_mode: "service:pythonapp"
+    environment:
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=""
+  app:
+    container_name: app
+    build: ./app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+      - placement
+    networks:
+      - dapr-phenny_default
+  app-dapr:
+    container_name: app-dapr
+    image: "daprio/daprd:edge"
+    command: [
+        "./daprd",
+        "-app-id", "app",
+        "-app-port", "5000",
+        "-placement-host-address", "placement:50006",
+        "-components-path", "/components"
+    ]
+    volumes:
+      - "./components/:/components"
+    depends_on:
+      - app
+    network_mode: "service:app"
     environment:
       - REDIS_HOST=redis:6379
       - REDIS_PASSWORD=""
